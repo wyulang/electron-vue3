@@ -1,7 +1,8 @@
 <template>
   <div :class="class" :style="{'height':`${options.inputHeight}px`}" class="rel _select">
     <div @click="onSelect" @mouseleave="btnMouse('leave')" @mousemove="btnMouse('move')" class="rel w-all">
-      <input ref="selectInput" :readonly="isReadonly" @input="onInput" :placeholder="placeholder" :disabled="disabled" v-model="currValue.label" :class="inputClass" class="w-all hand ipt" type="text">
+      <input ref="selectInput" v-if="lazy" :readonly="isReadonly" @input="onInput" :placeholder="placeholder" :disabled="disabled" v-model="lazyLabel" :class="inputClass" class="w-all line-1 hand ipt" type="text">
+      <input ref="selectInput" v-else :readonly="isReadonly" @input="onInput" :placeholder="placeholder" :disabled="disabled" v-model="currValue.label" :class="inputClass" class="w-all line-1 hand ipt" type="text">
       <svg v-if="!isClear" style="transition: all 0.15s;" :class="{'arrow':visible}" class="abs ar5 drop abst w-22 h-22" viewBox="0 0 1024 1024">
         <path d="M346.453333 396.373333L512 561.92l165.546667-165.546667a42.496 42.496 0 1 1 60.16 60.16l-195.84 195.84a42.496 42.496 0 0 1-60.16 0L285.866667 456.533333a42.496 42.496 0 0 1 0-60.16c16.64-16.213333 43.946667-16.64 60.586666 0z" fill="#aaa"></path>
       </svg>
@@ -12,13 +13,15 @@
       </svg>
     </div>
     <transition name="select">
-      <div :style="{'top':`${options.inputHeight+4}px`}" v-show="visible" class="_selects_dropdown abs zi-8888 ra-5 hidden ar0 al0">
-        <scrollbar :auto="options.valueHeight" v-if="isRefresh" maxHeight="220">
+      <div :style="{'top':`${options.inputHeight+4}px`,width:width}" v-show="visible" class="_selects_dropdown abs zi-8888 ra-5 hidden ar0 al0">
+        <scrollbar :auto="options.valueHeight" maxHeight="220">
           <div v-if="path.length" class="flex ra-5 hidden bc-fff w-all fd-c">
             <div :class="{'_is_select fb':currValue.value==item.value,'is_dis':(item.disabled&&currValue.value!=item.value)}" @click="selectItem(item)" v-for="(item,index) in path" class="hand h-34">
-              <slot :item="item">
-                <div :class="setStyle(item)" class="flex  h-all w-all pl15 ai-c">{{item.label}}</div>
-              </slot>
+              <div :class="setStyle(item)" class="flex h-all w-all pl15 ai-c">
+                <slot :item="{...item,index}">
+                  {{item.label}}
+                </slot>
+              </div>
             </div>
           </div>
           <div @click="visible=false" v-else class="flex hand h-40 ra-5 hidden bc-fff w-all ai-c jc-c">
@@ -32,7 +35,7 @@
 
 <script lang='ts'>
 import { Vue, Prop, Model, Ref, Options, Emit } from 'vue-property-decorator';
-import { isString, isArray, isObject } from '@lib/lang';
+import { isString, isArray, isObject } from '../../lib/lang';
 import scrollbar from './scroll.vue';
 @Options({
   components: {
@@ -42,7 +45,8 @@ import scrollbar from './scroll.vue';
 export default class App extends Vue {
   @Prop({ type: String, default: "w-all" }) class;
   @Prop({ type: String, default: "small" }) size;
-  // 懒加载 return [] 输入查询
+  @Prop({ type: String, default: "auto" }) width;
+  // 懒加载 return [] 输入查询 远程搜索
   @Prop({ type: Function }) lazy;
   // 显示清空选项
   @Prop({ type: Boolean, default: false }) clear;
@@ -67,6 +71,7 @@ export default class App extends Vue {
   isRefresh = true;
   list: any = [];
   lazyValue = "";
+  lazyLabel = "";
   isLazy = false;
   options: any = {
     inputHeight: 0,//输入框高度
@@ -75,9 +80,6 @@ export default class App extends Vue {
 
   get currValue() {
     let item = this.path.find((v, i) => { return String(v.value) === String(this.value) });
-    if (this.lazyValue && this.isLazy) {
-      return { label: this.lazyValue, value: this.lazyValue }
-    }
     if (item) {
       return item
     } else {
@@ -94,9 +96,12 @@ export default class App extends Vue {
 
   onInput(e) {
     let { value } = e.target as HTMLInputElement;
-    this.lazyValue = value;
-    this.$emit('update:modelValue', value);
     if (this.lazy && value) {
+      if (this.currValue.labe != value && this.lazyValue) {
+        this.lazyLabel = value;
+        this.lazyValue = "";
+        this.$emit('update:modelValue', "");
+      }
       this.lazy(value).then(res => {
         this.list = res;
         this.visible = true;
@@ -107,6 +112,7 @@ export default class App extends Vue {
         })
       })
     } else {
+      this.$emit('update:modelValue', "");
       this.isRefresh = false;
       this.$nextTick(() => {
         this.isRefresh = true;
@@ -129,15 +135,10 @@ export default class App extends Vue {
   }
 
   onRefresh() {
-    this.isRefresh = false;
-    this.isOpen = true;
     let index = this.path.findIndex(v => { return v.value == this.value });
     index = index ? (index - 3) : 0;
     index = index < 0 ? 0 : index;
     this.options.valueHeight = index * 34;
-    this.$nextTick(() => {
-      this.isRefresh = true;
-    })
   }
 
   get parm() {
@@ -168,7 +169,6 @@ export default class App extends Vue {
   }
 
   selectItem(item) {
-    this.lazyValue = "";
     let curr = item.value;
     if (this.exclude && curr != String(this.value)) {
       if (this.exclude.some(v => String(item.value) == String(v))) {
@@ -176,6 +176,10 @@ export default class App extends Vue {
       }
     }
     this.visible = false;
+    if (this.lazy) {
+      this.lazyLabel = item.label;
+      this.lazyValue = item.value;
+    }
     this.$emit('update:modelValue', item.value);
     setTimeout(() => {
       this.handSelect(item);
@@ -186,7 +190,7 @@ export default class App extends Vue {
 
   @Emit('clear')
   changeClose() {
-    this.isLazy=false;
+    this.isLazy = false;
     this.isClear = false;
     this.visible = false;
     this.$emit('update:modelValue', "");
@@ -242,6 +246,7 @@ export default class App extends Vue {
   }
 
   onSelect() {
+    this.onRefresh();
     if (this.disabled) return;
     if (this.visible) {
       this.visible = false;
@@ -249,9 +254,6 @@ export default class App extends Vue {
       this.visible = !this.visible;
     }
     document.addEventListener("click", this.setSelectPop);
-    if (!this.isOpen) {
-      this.onRefresh();
-    }
   }
 
   btnMouse(type) {
@@ -280,7 +282,7 @@ export default class App extends Vue {
 <style lang='less'>
 ._select {
   .arrow {
-    transform: rotate(-180deg) translateY(50%);
+    transform: rotate(-180deg) translateY(50%) !important;
   }
   .is-select {
     border-color: #57a3f3;

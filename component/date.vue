@@ -22,8 +22,8 @@
             </svg>
           </div>
           <div class="flex-1 flex fs-15 fb ai-c jc-c">
-            <span @click="isYear=!isYear;isMonth=false;" class="pr10 hand">{{selectYear}} 年</span>
-            <span @click="isMonth=!isMonth;isYear=false;" class="pl10 hand">{{selectMonth}} 月</span>
+            <span @click="isYear=!isYear;isMonth=false;isHour = false;isMinute = false;isSec = false;" class="pr10 hand">{{selectYear}} 年</span>
+            <span @click="isMonth=!isMonth;isYear=false;isHour = false;isMinute = false;isSec = false;" class="pl10 hand">{{selectMonth}} 月</span>
           </div>
           <div @click="changeMonth('next')" class="pl5 pr5 hand">
             <svg viewBox="0 0 1024 1024" width="15" height="15">
@@ -111,14 +111,19 @@
 import { Vue, Prop, Model, Emit } from 'vue-property-decorator';
 import formatDate from '@lib/dateFormat';
 export default class datepick extends Vue {
-  $refs;
+  // 日期格式化
   @Prop({ type: String, default: "yyyy-MM-dd" }) format;
+  // 输入框大小
   @Prop({ type: String, default: "small" }) size;
+  // 是否显示 时分秒
   @Prop({ type: Boolean, default: false }) time;
+  // 是否显示 时分秒
+  @Prop({ type: Boolean, default: false }) disabled;
+  // 是否有清空图标
   @Prop({ type: Boolean, default: true }) clear;
   @Prop({ type: String, default: "请选择日期" }) placeholder;
-  @Prop({ type: Boolean, default: false }) curr;
   @Prop({ type: String, default: "" }) class;
+  // 当出现在某个position: absolute元素内，出现滚动条时，需要当前的div  this.dom
   @Prop({ type: String, default: "" }) dom;
   @Model('modelValue', { type: [String, Number, Date], default: "" }) value;
   visible = false;
@@ -133,7 +138,7 @@ export default class datepick extends Vue {
   selectYear = new Date().getFullYear();
   currYear = new Date().getFullYear();
   selectMonth = new Date().getMonth() + 1;// 默认从0开始，所以需要加1
-  selectDay =new Date().getDate();
+  selectDay = new Date().getDate();
   selectHour: any = "00";
   selectMinute: any = "00";
   selectSecond: any = "00";
@@ -152,6 +157,7 @@ export default class datepick extends Vue {
   off: any = { width: 0, height: 0 }
 
   inputSelect(e) {
+    if (this.disabled) return
     this.visible = !this.visible;
     document.addEventListener("click", this.setSelectPop);
   }
@@ -192,7 +198,7 @@ export default class datepick extends Vue {
   }
 
   btnTimeSave() {
-    let tims=`${this.selectYear}-${this.selectMonth}-${this.selectDay} ${this.selectHour.toString()}:${this.selectMinute.toString()}:${this.selectSecond.toString()}`;
+    let tims = `${this.selectYear}-${this.selectMonth}-${this.selectDay} ${this.selectHour.toString()}:${this.selectMinute.toString()}:${this.selectSecond.toString()}`;
     console.log(tims)
     this.handSelect(tims)
     this.visible = false;
@@ -354,9 +360,12 @@ export default class datepick extends Vue {
       this.selectSecond = years[5];
     }
     if (this.value) {
-      let format = this.format;
-      if (format != "timestamp" && this.time && !format.includes('hh')) {
-        format = format + " hh:mm:ss"
+      let format = "yyyy-MM-dd";
+      // if (format != "timestamp" && this.time && !format.includes('hh')) {
+      //   format = format + " hh:mm:ss"
+      // }
+      if (this.time) {
+        format = "yyyy-MM-dd hh:mm:ss"
       }
       let currtime = formatDate(this.value, format);
       // if (this.isFirst) {
@@ -420,18 +429,9 @@ export default class datepick extends Vue {
     } else {
       this.off = {
         width: document.body.scrollWidth,
-        height: window.screen.availHeight ||document.documentElement.clientHeight||document.body.clientHeight
+        height: window.screen.availHeight || document.documentElement.clientHeight || document.body.clientHeight
       }
     }
-    // if (this.value) {
-    //   let years = formatDate(this.value, "yyyy-MM-dd-hh-mm-ss").split('-');
-    //   this.selectYear = Number(years[0]);
-    //   this.selectMonth = Number(years[1]);
-    //   this.selectDay = Number(years[2]);
-    //   this.selectHour = Number(years[3]);
-    //   this.selectMinute = Number(years[4]);
-    //   this.selectSecond = Number(years[5]);
-    // }
   }
 
   get row() {
