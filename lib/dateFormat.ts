@@ -1,4 +1,4 @@
-function dateNormalize(date: any = undefined) {
+export const dateNormalize = (date: any = undefined) => {
   if (!date) {
     date = new Date();
   }
@@ -8,7 +8,7 @@ function dateNormalize(date: any = undefined) {
     if (!isNaN(date)) {
       return new Date(Number(date))
     } else if (date.includes('T')) {
-     return new Date(date)
+      return new Date(date)
     }
     else {
       return new Date(date.replace(/-/ig, '/'))

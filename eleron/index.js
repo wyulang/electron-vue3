@@ -26,16 +26,22 @@ ipcMain.handle('open-dev', (e, data) => {
 })
 
 ipcMain.handle('win-bar', async (event, data) => {
-  if (data == 'close') {
-    win && win.close();
-  } else if (data == 'max:1') {
-    win && win.maximize();
-  } else if (data == 'max:0') {
-    win && win.unmaximize();
-  } else if (data == 'min:1') {
-    win && win.minimize();
-  } else if (data == 'min:0') {
-    win && win.restore();
+  if (win) {
+    if (data == 'close') {
+      win.close();
+    } else if (data == 'max') {
+      if (win.isMaximized()) {
+        win.unmaximize();
+      } else {
+        win.maximize();
+      }
+    } else if (data == 'min') {
+      if (win.isMinimized()) {
+        win.restore();
+      } else {
+        win.minimize();
+      }
+    }
   }
 })
 

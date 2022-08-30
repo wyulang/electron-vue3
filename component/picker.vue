@@ -32,7 +32,7 @@
 
 
 import { Vue, Prop, Emit, Model, Watch } from 'vue-property-decorator';
-import { isString, isArray, isObject } from '../../lib/lang';
+import { isString, isArray, isObject } from '@lib/lang';
 export default class App extends Vue {
   @Prop({ type: [Array, Object], default: [] }) list!: any;
   @Prop({ type: String, default: 'h-500' }) pickClass;

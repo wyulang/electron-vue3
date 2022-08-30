@@ -27,7 +27,7 @@ module.exports = {
   entry: path.resolve(__dirname, '../src/index.ts'),
   publicPath: '',
   devPath: path.resolve(__dirname, '../dist'),
-  prodPath: path.resolve(__dirname, '../electron/www'),
+  prodPath: path.resolve(__dirname, '../eleron/www'),
   devServer: getIPAdress() || 'localhost',
   port: '3007',
   isFile: isFile,
